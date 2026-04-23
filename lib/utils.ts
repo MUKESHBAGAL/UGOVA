@@ -26,6 +26,10 @@ export function truncateText(text: string, maxLength: number): string {
   return text.slice(0, maxLength) + '...'
 }
 
+export function generateId(): string {
+  return crypto.randomUUID()
+}
+
 export const indianStates = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
   'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
@@ -42,7 +46,3 @@ export const qualifications = [
 export const categories = [
   'General', 'OBC', 'SC', 'ST', 'EWS'
 ]
-
-export function generateId(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-}
