@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { generateJobs } from '@/lib/aiDataGenerator'
 
+export const dynamic = 'force-dynamic'
+
 let cachedJobs: any[] | null = null
 let lastFetchTime = 0
 const CACHE_DURATION = 1000 * 60 * 30 // 30 minutes
