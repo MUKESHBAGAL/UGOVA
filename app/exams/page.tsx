@@ -108,7 +108,10 @@ export default function ExamsPage() {
           </p>
           <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200">
             <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-            AI Auto-Updated Daily — {exams.length} Exams Available
+            🤖 AI Auto-Fetched from Google — {exams.length} Exams Available
+          </div>
+          <div className="mt-2 text-xs text-gray-400">
+            Data refreshes automatically every 30 minutes via simulated Google Search + AI extraction
           </div>
         </div>
       </div>
