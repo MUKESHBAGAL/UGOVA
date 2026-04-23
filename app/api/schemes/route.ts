@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { generateSchemes } from '@/lib/aiDataGenerator'
 
+export const dynamic = 'force-dynamic'
+
 // Cache for AI-generated data
 let cachedSchemes: any[] | null = null
 let lastFetchTime = 0
