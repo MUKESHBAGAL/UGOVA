@@ -42,3 +42,7 @@ export const qualifications = [
 export const categories = [
   'General', 'OBC', 'SC', 'ST', 'EWS'
 ]
+
+export function generateId(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+}
