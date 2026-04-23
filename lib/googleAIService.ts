@@ -184,16 +184,17 @@ function generateSchemes(count: number): GoogleFetchedOpportunity[] {
     const title = tpl.title.replace("{name}", name).replace("{ministry}", ministry).replace("{state}", stateName).replace("{dept}", dept);
     const location = pick(LOCATIONS);
     const deadline = randomDate(new Date(year, 0, 1), new Date(nextYear, 11, 31));
+    const cat = pick(SCHEME_CATEGORIES);
 
     return {
       _id: generateId(),
       id: generateId(),
       title,
       description: `The ${title} is a flagship initiative by the ${org} aimed at providing ${name.toLowerCase()}-related benefits to eligible citizens. Under this scheme, beneficiaries can avail financial assistance, subsidies, and support services. The scheme is designed to improve the socio-economic conditions of the target demographic and promote inclusive growth across ${location}.`,
-      category: "scheme",
+      category: cat,
       organization: org,
       ministry: `Ministry of ${ministry}`,
-      category_type: pick(SCHEME_CATEGORIES),
+      category_type: cat,
       state: location,
       location,
       eligibility: `Applicants must be ${pick(ELIGIBILITY_POOL)} residents of ${location}. Family income should be below ${(3 + Math.floor(Math.random() * 7)).toFixed(1)} lakh per annum.`,
