@@ -194,7 +194,7 @@ function generateSchemes(count: number): GoogleFetchedOpportunity[] {
       category: cat,
       organization: org,
       ministry: `Ministry of ${ministry}`,
-      category_type: cat,
+      category_type: pick(SCHEME_CATEGORIES),
       state: location,
       location,
       eligibility: `Applicants must be ${pick(ELIGIBILITY_POOL)} residents of ${location}. Family income should be below ${(3 + Math.floor(Math.random() * 7)).toFixed(1)} lakh per annum.`,
@@ -297,7 +297,7 @@ function generateJobs(count: number): GoogleFetchedOpportunity[] {
       applicationStart: appStart,
       applicationEnd: appEnd,
       ageLimit: { min: 18 + Math.floor(Math.random() * 5), max: 30 + Math.floor(Math.random() * 7) },
-      applicationFee_job: {
+      applicationFee: {
         general: [100, 200, 300, 500, 600][Math.floor(Math.random() * 5)],
         obc: [100, 150, 200, 300][Math.floor(Math.random() * 4)],
         sc: 0, st: 0,
