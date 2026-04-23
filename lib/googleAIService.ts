@@ -179,24 +179,18 @@ function generateSchemes(count: number): GoogleFetchedOpportunity[] {
       .replace("{dept}", dept);
 
     return {
-      _id: generateId(),
+      id: generateId(),
       title,
       description: `The ${title} is a flagship initiative by the ${org} aimed at providing ${name.toLowerCase()}-related benefits to eligible citizens. Under this scheme, beneficiaries can avail financial assistance, subsidies, and support services. The scheme is designed to improve the socio-economic conditions of the target demographic and promote inclusive growth across ${pick(LOCATIONS)}.`,
-      category: "scheme" as const,
+      category: "scheme",
       organization: org,
-      ministry: `Ministry of ${ministry}`,
-      state: pick(LOCATIONS),
+      location: pick(LOCATIONS),
       eligibility: `Applicants must be ${pick(ELIGIBILITY_POOL)} residents of ${pick(LOCATIONS)}. Family income should be below ${(3 + Math.floor(Math.random() * 7)).toFixed(1)} lakh per annum.`,
-      benefits: `Financial assistance up to ₹${(1 + Math.floor(Math.random() * 9)).toFixed(0)} lakh, subsidized loans, direct benefit transfer (DBT), and access to welfare services.`,
       deadline: randomDate(new Date(year, 0, 1), new Date(nextYear, 11, 31)),
       url: generateSourceUrl(title, org),
       source: "Google Search + AI Extraction",
       lastUpdated: new Date().toISOString(),
       tags: [...tpl.tags, `year-${year}`, state.toLowerCase()],
-      isActive: true,
-      totalApplications: Math.floor(Math.random() * 500000) + 10000,
-      location: pick(LOCATIONS),
-      id: generateId(),
     };
   });
 }
@@ -224,18 +218,35 @@ function generateExams(count: number): GoogleFetchedOpportunity[] {
     appEnd.setDate(appEnd.getDate() - 15);
 
     return {
-      id: generateId(),
+      _id: generateId(),
       title,
       description: `The ${title} is a prestigious national-level competitive examination conducted by ${org}. This exam recruits eligible candidates for ${name} positions across various departments. The selection process typically includes a preliminary examination, main written test, and interview/personality test. Successful candidates are appointed to Class I/II/III government posts with attractive salary and benefits.`,
-      category: "exam",
+      category: "exam" as const,
+      examType: org.includes("UPSC") ? "upsc" : org.includes("SSC") ? "ssc" : org.includes("IBPS") || org.includes("Bank") ? "banking" : org.includes("Railway") ? "railway" : org.includes("Army") || org.includes("Navy") || org.includes("Force") ? "defence" : "state",
       organization: org,
-      location: "All India",
+      state: "All India",
       eligibility: `Candidates must be ${pick(ELIGIBILITY_POOL)}. Age limit: ${18 + Math.floor(Math.random() * 5)}-${25 + Math.floor(Math.random() * 12)} years. Relaxation applicable as per government norms.`,
-      deadline: appEnd.toISOString().split("T")[0],
+      applicationStart: appStart.toISOString().split("T")[0],
+      applicationEnd: appEnd.toISOString().split("T")[0],
+      examDate,
+      applicationFee: {
+        general: [100, 150, 200, 250, 300, 500][Math.floor(Math.random() * 6)],
+        obc: [100, 150, 200, 250, 300][Math.floor(Math.random() * 5)],
+        sc: 0,
+        st: 0,
+        ews: [100, 150, 200][Math.floor(Math.random() * 3)],
+      },
+      totalPosts: [50, 100, 250, 500, 750, 1000, 1500, 2000][Math.floor(Math.random() * 8)],
+      ageLimit: { min: 18 + Math.floor(Math.random() * 5), max: 25 + Math.floor(Math.random() * 12) },
+      qualification: pick(ELIGIBILITY_POOL),
+      location: "All India",
       url: generateSourceUrl(title, org),
       source: "Google Search + AI Extraction",
       lastUpdated: new Date().toISOString(),
       tags: [...tpl.tags, org.toLowerCase().replace(/\s+/g, "-"), `year-${year}`],
+      isActive: true,
+      deadline: appEnd.toISOString().split("T")[0],
+      id: generateId(),
     };
   });
 }
