@@ -179,18 +179,24 @@ function generateSchemes(count: number): GoogleFetchedOpportunity[] {
       .replace("{dept}", dept);
 
     return {
-      id: generateId(),
+      _id: generateId(),
       title,
       description: `The ${title} is a flagship initiative by the ${org} aimed at providing ${name.toLowerCase()}-related benefits to eligible citizens. Under this scheme, beneficiaries can avail financial assistance, subsidies, and support services. The scheme is designed to improve the socio-economic conditions of the target demographic and promote inclusive growth across ${pick(LOCATIONS)}.`,
-      category: "scheme",
+      category: "scheme" as const,
       organization: org,
-      location: pick(LOCATIONS),
+      ministry: `Ministry of ${ministry}`,
+      state: pick(LOCATIONS),
       eligibility: `Applicants must be ${pick(ELIGIBILITY_POOL)} residents of ${pick(LOCATIONS)}. Family income should be below ${(3 + Math.floor(Math.random() * 7)).toFixed(1)} lakh per annum.`,
+      benefits: `Financial assistance up to ₹${(1 + Math.floor(Math.random() * 9)).toFixed(0)} lakh, subsidized loans, direct benefit transfer (DBT), and access to welfare services.`,
       deadline: randomDate(new Date(year, 0, 1), new Date(nextYear, 11, 31)),
       url: generateSourceUrl(title, org),
       source: "Google Search + AI Extraction",
       lastUpdated: new Date().toISOString(),
       tags: [...tpl.tags, `year-${year}`, state.toLowerCase()],
+      isActive: true,
+      totalApplications: Math.floor(Math.random() * 500000) + 10000,
+      location: pick(LOCATIONS),
+      id: generateId(),
     };
   });
 }
