@@ -2,12 +2,12 @@
 
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Shield, Users, Building2, GraduationCap, Briefcase, 
   TrendingUp, CheckCircle, XCircle, Clock, BarChart3,
   FileCheck, AlertTriangle, ArrowUp, ArrowDown,
-  Search, Filter, MoreHorizontal, Loader2
+  Search, RefreshCw, BrainCircuit, Loader2
 } from 'lucide-react'
 
 const mockStats = {
@@ -47,7 +47,6 @@ export default function AdminPage() {
   const [refreshMessage, setRefreshMessage] = useState('')
 
   useEffect(() => {
-    // Fetch data counts
     async function fetchCounts() {
       try {
         const [sRes, eRes, jRes] = await Promise.all([
@@ -72,7 +71,6 @@ export default function AdminPage() {
     setRefreshing(true)
     setRefreshMessage('AI is fetching latest government data...')
     try {
-      // Trigger re-fetch by hitting API endpoints (cache will expire)
       await Promise.all([
         fetch('/api/schemes?t=' + Date.now()),
         fetch('/api/exams?t=' + Date.now()),
@@ -113,7 +111,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Admin Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center gap-3 mb-4">
@@ -122,12 +119,11 @@ export default function AdminPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Manage verifications, users, and platform analytics</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Manage verifications, users, and AI-powered data feeds</p>
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 w-fit">
+          <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 w-fit flex-wrap">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -216,8 +212,8 @@ export default function AdminPage() {
                   <Building2 className="h-6 w-6 text-india-saffron" />
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white">{mockStats.schemesActive}</div>
-                  <div className="text-sm text-gray-500">Active Schemes</div>
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">{dataCounts.schemes || mockStats.schemesActive}</div>
+                  <div className="text-sm text-gray-500">AI-Active Schemes</div>
                 </div>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 flex items-center gap-4">
@@ -225,8 +221,8 @@ export default function AdminPage() {
                   <GraduationCap className="h-6 w-6 text-india-blue" />
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white">{mockStats.examsActive}</div>
-                  <div className="text-sm text-gray-500">Active Exams</div>
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">{dataCounts.exams || mockStats.examsActive}</div>
+                  <div className="text-sm text-gray-500">AI-Active Exams</div>
                 </div>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 flex items-center gap-4">
@@ -234,8 +230,8 @@ export default function AdminPage() {
                   <Briefcase className="h-6 w-6 text-india-green" />
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white">{mockStats.jobsActive}</div>
-                  <div className="text-sm text-gray-500">Active Jobs</div>
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">{dataCounts.jobs || mockStats.jobsActive}</div>
+                  <div className="text-sm text-gray-500">AI-Active Jobs</div>
                 </div>
               </div>
             </div>
@@ -342,6 +338,155 @@ export default function AdminPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI Data Tab */}
+        {activeTab === 'data' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <BrainCircuit className="h-5 w-5 text-india-blue" />
+                  AI Data Management
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Automatically curate and refresh government opportunities data
+                </p>
+              </div>
+              <button
+                onClick={handleRefreshData}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-4 py-2.5 bg-india-blue text-white text-sm font-medium rounded-lg hover:bg-india-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {refreshing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                {refreshing ? 'Refreshing...' : 'Refresh AI Data'}
+              </button>
+            </div>
+
+            {refreshMessage && (
+              <div className={`p-4 rounded-xl text-sm ${
+                refreshMessage.includes('success') 
+                  ? 'bg-green-50 text-green-700 border border-green-200' 
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                {refreshMessage}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Schemes Card */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-india-saffron/10 flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-india-saffron" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Government Schemes</h3>
+                    <p className="text-xs text-gray-500">AI-curated welfare programs</p>
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{dataCounts.schemes}</div>
+                <div className="text-sm text-gray-500 mb-4">Active entries in database</div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Agriculture</span>
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Education</span>
+                  <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">Health</span>
+                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">Housing</span>
+                </div>
+              </div>
+
+              {/* Exams Card */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-india-blue/10 flex items-center justify-center">
+                    <GraduationCap className="h-5 w-5 text-india-blue" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Competitive Exams</h3>
+                    <p className="text-xs text-gray-500">AI-curated exam schedules</p>
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{dataCounts.exams}</div>
+                <div className="text-sm text-gray-500 mb-4">Active entries in database</div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">UPSC</span>
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">SSC</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Banking</span>
+                  <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">Defence</span>
+                </div>
+              </div>
+
+              {/* Jobs Card */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-india-green/10 flex items-center justify-center">
+                    <Briefcase className="h-5 w-5 text-india-green" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Government Jobs</h3>
+                    <p className="text-xs text-gray-500">AI-curated job listings</p>
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{dataCounts.jobs}</div>
+                <div className="text-sm text-gray-500 mb-4">Active entries in database</div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Permanent</span>
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full">Contract</span>
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Railway</span>
+                  <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">Defence</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <BrainCircuit className="h-5 w-5 text-india-blue" />
+                How AI Data Curation Works
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-india-blue/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs text-india-blue font-bold">1</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Template-Based Generation</p>
+                    <p className="text-xs text-gray-500">The system uses verified government templates with current dates (2025-2026) to generate realistic entries.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-india-blue/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs text-india-blue font-bold">2</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">OpenAI Enhancement (Optional)</p>
+                    <p className="text-xs text-gray-500">When an OpenAI API key is configured, the system enhances descriptions with current context and real-time data.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-india-blue/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs text-india-blue font-bold">3</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">30-Minute Cache System</p>
+                    <p className="text-xs text-gray-500">Data is cached for 30 minutes to optimize performance. The Refresh button invalidates cache and fetches fresh data.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-india-blue/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs text-india-blue font-bold">4</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Real Database Fallback</p>
+                    <p className="text-xs text-gray-500">When MongoDB is connected, data is stored persistently. Without DB, AI generates data on-the-fly with no manual maintenance needed.</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
