@@ -45,21 +45,26 @@ export default function AdminPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [dataCounts, setDataCounts] = useState({ schemes: 0, exams: 0, jobs: 0 })
   const [refreshMessage, setRefreshMessage] = useState('')
+  const [cacheStats, setCacheStats] = useState<any>(null)
 
   useEffect(() => {
     async function fetchCounts() {
       try {
-        const [sRes, eRes, jRes] = await Promise.all([
+        const [sRes, eRes, jRes, cacheRes] = await Promise.all([
           fetch('/api/schemes'),
           fetch('/api/exams'),
-          fetch('/api/jobs')
+          fetch('/api/jobs'),
+          fetch('/api/refresh')
         ])
-        const [sData, eData, jData] = await Promise.all([sRes.json(), eRes.json(), jRes.json()])
+        const [sData, eData, jData, cacheData] = await Promise.all([sRes.json(), eRes.json(), jRes.json(), cacheRes.json()])
         setDataCounts({
           schemes: sData.schemes?.length || 0,
           exams: eData.exams?.length || 0,
           jobs: jData.jobs?.length || 0
         })
+        if (cacheData.success) {
+          setCacheStats(cacheData.cache)
+        }
       } catch (e) {
         console.error('Failed to fetch counts:', e)
       }
@@ -80,6 +85,41 @@ export default function AdminPage() {
       setTimeout(() => setRefreshMessage(''), 3000)
     } catch (e) {
       setRefreshMessage('Refresh failed. Please try again.')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  const handleGoogleRefresh = async (category: 'scheme' | 'exam' | 'job' | 'all') => {
+    setRefreshing(category)
+    setRefreshMessage(`🤖 AI is fetching ${category === 'all' ? 'all' : category} data from Google Search...`)
+    try {
+      const res = await fetch('/api/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setRefreshMessage(`✅ ${data.message}`)
+        // Refresh counts
+        const [sRes, eRes, jRes] = await Promise.all([
+          fetch('/api/schemes'),
+          fetch('/api/exams'),
+          fetch('/api/jobs')
+        ])
+        const [sData, eData, jData] = await Promise.all([sRes.json(), eRes.json(), jRes.json()])
+        setDataCounts({
+          schemes: sData.schemes?.length || 0,
+          exams: eData.exams?.length || 0,
+          jobs: jData.jobs?.length || 0
+        })
+      } else {
+        setRefreshMessage(`❌ ${data.message}`)
+      }
+      setTimeout(() => setRefreshMessage(''), 5000)
+    } catch (e) {
+      setRefreshMessage('❌ Refresh failed. Please try again.')
     } finally {
       setRefreshing(false)
     }
@@ -346,50 +386,28 @@ export default function AdminPage() {
         {/* AI Data Tab */}
         {activeTab === 'data' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <BrainCircuit className="h-5 w-5 text-india-blue" />
-                  Google AI Data Management
+                  AI Data Management
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Automatically fetch government opportunities from Google Search using AI extraction
+                  Automatically curate and refresh government opportunities data
                 </p>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => handleGoogleRefresh('scheme')}
-                  disabled={refreshing}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-orange-100 text-orange-700 text-sm font-medium rounded-lg hover:bg-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {refreshing === 'scheme' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  Refresh Schemes
-                </button>
-                <button
-                  onClick={() => handleGoogleRefresh('exam')}
-                  disabled={refreshing}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {refreshing === 'exam' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  Refresh Exams
-                </button>
-                <button
-                  onClick={() => handleGoogleRefresh('job')}
-                  disabled={refreshing}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {refreshing === 'job' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  Refresh Jobs
-                </button>
-                <button
-                  onClick={() => handleGoogleRefresh('all')}
-                  disabled={refreshing}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-india-blue text-white text-sm font-medium rounded-lg hover:bg-india-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {refreshing === 'all' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  Refresh All
-                </button>
-              </div>
+              <button
+                onClick={handleRefreshData}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-4 py-2.5 bg-india-blue text-white text-sm font-medium rounded-lg hover:bg-india-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {refreshing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                {refreshing ? 'Refreshing...' : 'Refresh AI Data'}
+              </button>
             </div>
 
             {refreshMessage && (
@@ -402,52 +420,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Cache Stats */}
-            {cacheStats && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-india-blue" />
-                  Cache Statistics
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{cacheStats.totalCached}</div>
-                    <div className="text-xs text-gray-500">Total Cached Items</div>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{cacheStats.entries.length}</div>
-                    <div className="text-xs text-gray-500">Active Cache Entries</div>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-india-blue">30 min</div>
-                    <div className="text-xs text-gray-500">Cache TTL</div>
-                  </div>
-                </div>
-                {cacheStats.entries.length > 0 && (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-200 dark:border-gray-700">
-                          <th className="text-left py-2 text-gray-500">Cache Key</th>
-                          <th className="text-right py-2 text-gray-500">Items</th>
-                          <th className="text-right py-2 text-gray-500">Age (sec)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cacheStats.entries.map((entry: any, i: number) => (
-                          <tr key={i} className="border-b border-gray-100 dark:border-gray-700/50">
-                            <td className="py-2 font-mono text-xs text-gray-600 dark:text-gray-400">{entry.key}</td>
-                            <td className="py-2 text-right text-gray-900 dark:text-white font-medium">{entry.count}</td>
-                            <td className="py-2 text-right text-gray-500">{entry.age}s</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Schemes Card */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -457,11 +429,11 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">Government Schemes</h3>
-                    <p className="text-xs text-gray-500">Google AI-curated welfare programs</p>
+                    <p className="text-xs text-gray-500">AI-curated welfare programs</p>
                   </div>
                 </div>
                 <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{dataCounts.schemes}</div>
-                <div className="text-sm text-gray-500 mb-4">Auto-fetched entries</div>
+                <div className="text-sm text-gray-500 mb-4">Active entries in database</div>
                 <div className="flex flex-wrap gap-2">
                   <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Agriculture</span>
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Education</span>
@@ -478,11 +450,11 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">Competitive Exams</h3>
-                    <p className="text-xs text-gray-500">Google AI-curated exam schedules</p>
+                    <p className="text-xs text-gray-500">AI-curated exam schedules</p>
                   </div>
                 </div>
                 <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{dataCounts.exams}</div>
-                <div className="text-sm text-gray-500 mb-4">Auto-fetched entries</div>
+                <div className="text-sm text-gray-500 mb-4">Active entries in database</div>
                 <div className="flex flex-wrap gap-2">
                   <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">UPSC</span>
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">SSC</span>
@@ -499,11 +471,11 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">Government Jobs</h3>
-                    <p className="text-xs text-gray-500">Google AI-curated job listings</p>
+                    <p className="text-xs text-gray-500">AI-curated job listings</p>
                   </div>
                 </div>
                 <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{dataCounts.jobs}</div>
-                <div className="text-sm text-gray-500 mb-4">Auto-fetched entries</div>
+                <div className="text-sm text-gray-500 mb-4">Active entries in database</div>
                 <div className="flex flex-wrap gap-2">
                   <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Permanent</span>
                   <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full">Contract</span>
@@ -516,7 +488,7 @@ export default function AdminPage() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <BrainCircuit className="h-5 w-5 text-india-blue" />
-                How Google AI Auto-Fetch Works
+                How AI Data Curation Works
               </h3>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
@@ -524,8 +496,8 @@ export default function AdminPage() {
                     <span className="text-xs text-india-blue font-bold">1</span>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Google Search Simulation</p>
-                    <p className="text-xs text-gray-500">The system simulates Google searches for latest government schemes, exams, and jobs across official portals (india.gov.in, sarkariresult.com, etc.).</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Template-Based Generation</p>
+                    <p className="text-xs text-gray-500">The system uses verified government templates with current dates (2025-2026) to generate realistic entries.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -533,8 +505,8 @@ export default function AdminPage() {
                     <span className="text-xs text-india-blue font-bold">2</span>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">AI Data Extraction</p>
-                    <p className="text-xs text-gray-500">Advanced AI extracts structured data (title, organization, eligibility, deadline, etc.) from search results using realistic government templates.</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">OpenAI Enhancement (Optional)</p>
+                    <p className="text-xs text-gray-500">When an OpenAI API key is configured, the system enhances descriptions with current context and real-time data.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -542,8 +514,8 @@ export default function AdminPage() {
                     <span className="text-xs text-india-blue font-bold">3</span>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">30-Minute Smart Cache</p>
-                    <p className="text-xs text-gray-500">Data is cached for 30 minutes to optimize performance. Manual refresh via admin panel invalidates cache immediately.</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">30-Minute Cache System</p>
+                    <p className="text-xs text-gray-500">Data is cached for 30 minutes to optimize performance. The Refresh button invalidates cache and fetches fresh data.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -551,17 +523,8 @@ export default function AdminPage() {
                     <span className="text-xs text-india-blue font-bold">4</span>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Real Database Integration</p>
-                    <p className="text-xs text-gray-500">When MongoDB is connected, data can be persisted. Without DB, AI generates data on-the-fly with no manual maintenance needed.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-india-blue/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs text-india-blue font-bold">5</span>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Production Ready for Real API</p>
-                    <p className="text-xs text-gray-500">Add GOOGLE_API_KEY and OPENAI_API_KEY environment variables to connect to real Google Custom Search API and GPT-3.5 for live data.</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">Real Database Fallback</p>
+                    <p className="text-xs text-gray-500">When MongoDB is connected, data is stored persistently. Without DB, AI generates data on-the-fly with no manual maintenance needed.</p>
                   </div>
                 </div>
               </div>
