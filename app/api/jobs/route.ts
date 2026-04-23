@@ -1,39 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { generateJobs } from '@/lib/aiDataGenerator'
+import { withDB } from '@/lib/dbGuard'
+import { fetchFromGoogleAI } from '@/lib/googleAIService'
 
 export const dynamic = 'force-dynamic'
 
-let cachedJobs: any[] | null = null
-let lastFetchTime = 0
-const CACHE_DURATION = 1000 * 60 * 30 // 30 minutes
-
-async function getJobsData() {
-  const now = Date.now()
-  if (cachedJobs && (now - lastFetchTime) < CACHE_DURATION) {
-    return cachedJobs
-  }
-
-  const conn = await connectDB()
-  if (conn) {
-    try {
-      const Job = (await import('@/models/Job')).default
-      const jobs = await Job.find({ isActive: true }).sort({ applicationEnd: 1 })
-      if (jobs.length > 0) {
-        cachedJobs = jobs
-        lastFetchTime = now
-        return jobs
-      }
-    } catch (dbError) {
-      console.warn('DB fetch failed for jobs, using AI fallback:', dbError)
-    }
-  }
-
-  const jobs = await generateJobs(10)
-  cachedJobs = jobs
-  lastFetchTime = now
-  return jobs
-}
+// ─── GET /api/jobs ──────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,8 +14,25 @@ export async function GET(req: NextRequest) {
     const state = searchParams.get('state')
     const search = searchParams.get('search')
 
-    const jobs = await getJobsData()
+    // Try DB first, fallback to Google AI auto-fetch
+    const jobs = await withDB(
+      async () => {
+        const Job = (await import('@/models/Job')).default
+        const dbJobs = await Job.find({ isActive: true }).sort({ applicationEnd: 1 }).lean()
+        if (dbJobs.length > 0) {
+          console.log(`✅ [jobs/route] Served ${dbJobs.length} from DB`)
+          return dbJobs
+        }
+        throw new Error('No DB records')
+      },
+      async () => {
+        console.log('🤖 [jobs/route] DB unavailable → fetching from Google AI...')
+        const aiJobs = await fetchFromGoogleAI('job', 12)
+        return aiJobs
+      }
+    )
 
+    // Filter
     let filtered = [...jobs]
     if (jobType && jobType !== 'all') {
       filtered = filtered.filter((j: any) => j.jobType === jobType)
@@ -54,21 +43,24 @@ export async function GET(req: NextRequest) {
     if (search) {
       const q = search.toLowerCase()
       filtered = filtered.filter((j: any) =>
-        j.title.toLowerCase().includes(q) ||
-        j.description.toLowerCase().includes(q) ||
-        j.organization.toLowerCase().includes(q) ||
-        j.department?.toLowerCase().includes(q)
+        (j.title?.toLowerCase() || '').includes(q) ||
+        (j.description?.toLowerCase() || '').includes(q) ||
+        (j.organization?.toLowerCase() || '').includes(q) ||
+        (j.department?.toLowerCase() || '').includes(q)
       )
     }
 
-    return NextResponse.json({ success: true, jobs: filtered })
+    return NextResponse.json({ success: true, jobs: filtered, source: 'ai-auto-fetch' })
   } catch (error: any) {
+    console.error('❌ [jobs/route] GET error:', error.message)
     return NextResponse.json(
       { success: false, message: error.message },
       { status: 500 }
     )
   }
 }
+
+// ─── POST /api/jobs ─────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
