@@ -184,13 +184,14 @@ function generateSchemes(count: number): GoogleFetchedOpportunity[] {
     const title = tpl.title.replace("{name}", name).replace("{ministry}", ministry).replace("{state}", stateName).replace("{dept}", dept);
     const location = pick(LOCATIONS);
     const deadline = randomDate(new Date(year, 0, 1), new Date(nextYear, 11, 31));
+    const cat = pick(SCHEME_CATEGORIES);
 
     return {
       _id: generateId(),
       id: generateId(),
       title,
       description: `The ${title} is a flagship initiative by the ${org} aimed at providing ${name.toLowerCase()}-related benefits to eligible citizens. Under this scheme, beneficiaries can avail financial assistance, subsidies, and support services. The scheme is designed to improve the socio-economic conditions of the target demographic and promote inclusive growth across ${location}.`,
-      category: "scheme",
+      category: cat,
       organization: org,
       ministry: `Ministry of ${ministry}`,
       category_type: pick(SCHEME_CATEGORIES),
@@ -296,7 +297,7 @@ function generateJobs(count: number): GoogleFetchedOpportunity[] {
       applicationStart: appStart,
       applicationEnd: appEnd,
       ageLimit: { min: 18 + Math.floor(Math.random() * 5), max: 30 + Math.floor(Math.random() * 7) },
-      applicationFee: {
+      applicationFee_job: {
         general: [100, 200, 300, 500, 600][Math.floor(Math.random() * 5)],
         obc: [100, 150, 200, 300][Math.floor(Math.random() * 4)],
         sc: 0, st: 0,
