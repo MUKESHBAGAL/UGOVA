@@ -42,29 +42,24 @@ export default function AdminPage() {
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState('overview')
   const [searchTerm, setSearchTerm] = useState('')
-  const [refreshing, setRefreshing] = useState(false)
+  const [refreshing, setRefreshing] = useState<string | false>(false)
   const [dataCounts, setDataCounts] = useState({ schemes: 0, exams: 0, jobs: 0 })
   const [refreshMessage, setRefreshMessage] = useState('')
-  const [cacheStats, setCacheStats] = useState<any>(null)
 
   useEffect(() => {
     async function fetchCounts() {
       try {
-        const [sRes, eRes, jRes, cacheRes] = await Promise.all([
+        const [sRes, eRes, jRes] = await Promise.all([
           fetch('/api/schemes'),
           fetch('/api/exams'),
-          fetch('/api/jobs'),
-          fetch('/api/refresh')
+          fetch('/api/jobs')
         ])
-        const [sData, eData, jData, cacheData] = await Promise.all([sRes.json(), eRes.json(), jRes.json(), cacheRes.json()])
+        const [sData, eData, jData] = await Promise.all([sRes.json(), eRes.json(), jRes.json()])
         setDataCounts({
           schemes: sData.schemes?.length || 0,
           exams: eData.exams?.length || 0,
           jobs: jData.jobs?.length || 0
         })
-        if (cacheData.success) {
-          setCacheStats(cacheData.cache)
-        }
       } catch (e) {
         console.error('Failed to fetch counts:', e)
       }
@@ -85,41 +80,6 @@ export default function AdminPage() {
       setTimeout(() => setRefreshMessage(''), 3000)
     } catch (e) {
       setRefreshMessage('Refresh failed. Please try again.')
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
-  const handleGoogleRefresh = async (category: 'scheme' | 'exam' | 'job' | 'all') => {
-    setRefreshing(category)
-    setRefreshMessage(`🤖 AI is fetching ${category === 'all' ? 'all' : category} data from Google Search...`)
-    try {
-      const res = await fetch('/api/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category })
-      })
-      const data = await res.json()
-      if (data.success) {
-        setRefreshMessage(`✅ ${data.message}`)
-        // Refresh counts
-        const [sRes, eRes, jRes] = await Promise.all([
-          fetch('/api/schemes'),
-          fetch('/api/exams'),
-          fetch('/api/jobs')
-        ])
-        const [sData, eData, jData] = await Promise.all([sRes.json(), eRes.json(), jRes.json()])
-        setDataCounts({
-          schemes: sData.schemes?.length || 0,
-          exams: eData.exams?.length || 0,
-          jobs: jData.jobs?.length || 0
-        })
-      } else {
-        setRefreshMessage(`❌ ${data.message}`)
-      }
-      setTimeout(() => setRefreshMessage(''), 5000)
-    } catch (e) {
-      setRefreshMessage('❌ Refresh failed. Please try again.')
     } finally {
       setRefreshing(false)
     }
