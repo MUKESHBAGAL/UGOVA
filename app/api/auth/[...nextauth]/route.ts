@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import connectDB from '@/lib/mongodb'
+import connectDB, { isDBMockMode } from '@/lib/mongodb'
 import User from '@/models/User'
 import bcrypt from 'bcryptjs'
 
@@ -18,18 +18,23 @@ const handler = NextAuth({
         }
 
         await connectDB()
-        
-        const user = await User.findOne({ email: credentials.email }).select('+password')
-        
-        if (!user) {
-          return null
+
+        if (isDBMockMode()) {
+          // Mock authentication - allow any login for demo
+          return {
+            id: 'mock-user-1',
+            email: credentials.email,
+            name: 'Demo User',
+            role: 'user',
+            verificationStatus: 'pending',
+          }
         }
 
+        const user = await User.findOne({ email: credentials.email }).select('+password')
+        if (!user) return null
+
         const isPasswordMatch = await bcrypt.compare(credentials.password, user.password)
-        
-        if (!isPasswordMatch) {
-          return null
-        }
+        if (!isPasswordMatch) return null
 
         return {
           id: user._id.toString(),
@@ -43,7 +48,7 @@ const handler = NextAuth({
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, user }) {
