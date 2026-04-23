@@ -194,7 +194,7 @@ function generateSchemes(count: number): GoogleFetchedOpportunity[] {
       category: cat,
       organization: org,
       ministry: `Ministry of ${ministry}`,
-      category_type: pick(SCHEME_CATEGORIES),
+      category_type: cat,
       state: location,
       location,
       eligibility: `Applicants must be ${pick(ELIGIBILITY_POOL)} residents of ${location}. Family income should be below ${(3 + Math.floor(Math.random() * 7)).toFixed(1)} lakh per annum.`,
