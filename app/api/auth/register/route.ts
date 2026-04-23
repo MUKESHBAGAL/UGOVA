@@ -1,15 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import connectDB from '@/lib/mongodb'
+import connectDB, { isDBMockMode } from '@/lib/mongodb'
 import User from '@/models/User'
 
 export async function POST(req: NextRequest) {
   try {
-    await connectDB()
-    
     const body = await req.json()
     const { fullName, email, password, phone, dateOfBirth, gender, category } = body
 
-    // Check if user already exists
+    await connectDB()
+
+    if (isDBMockMode()) {
+      // Mock mode: just return success without DB
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Registration successful! Please login.',
+          user: {
+            id: 'mock-user-id',
+            fullName: fullName || 'Mock User',
+            email: email || 'user@example.com'
+          }
+        },
+        { status: 201 }
+      )
+    }
+
     const existingUser = await User.findOne({ email })
     if (existingUser) {
       return NextResponse.json(
@@ -18,7 +33,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Create new user
     const user = await User.create({
       fullName,
       email,
@@ -32,8 +46,8 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         message: 'Registration successful! Please login.',
         user: {
           id: user._id,
