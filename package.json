@@ -47,7 +47,10 @@
     "@hookform/resolvers": "^3.6.0",
     "next-themes": "^0.3.0",
     "date-fns": "^3.6.0",
-    "nanoid": "^5.0.7"
+    "nanoid": "^5.0.7",
+    "openai": "^4.52.0",
+    "cheerio": "^1.0.0-rc.12",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",
