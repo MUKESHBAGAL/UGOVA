@@ -42,7 +42,7 @@ export default function AdminPage() {
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState('overview')
   const [searchTerm, setSearchTerm] = useState('')
-  const [refreshing, setRefreshing] = useState<string | false>(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [dataCounts, setDataCounts] = useState({ schemes: 0, exams: 0, jobs: 0 })
   const [refreshMessage, setRefreshMessage] = useState('')
 
@@ -68,7 +68,7 @@ export default function AdminPage() {
   }, [refreshing])
 
   const handleRefreshData = async () => {
-    setRefreshing(true)
+    setRefreshing('all')
     setRefreshMessage('AI is fetching latest government data...')
     try {
       await Promise.all([
