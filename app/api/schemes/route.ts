@@ -1,7 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB, { isDBMockMode } from '@/lib/mongodb'
 import Scheme from '@/models/Scheme'
-import { mockSchemes } from '@/lib/mockData'
+import { generateSchemes } from '@/lib/aiDataGenerator'
+
+// Cache for AI-generated data (refreshes every request in dev, can be memoized in prod)
+let cachedSchemes: any[] | null = null
+let lastFetchTime = 0
+const CACHE_DURATION = 1000 * 60 * 30 // 30 minutes
+
+async function getSchemesData() {
+  const now = Date.now()
+  if (cachedSchemes && (now - lastFetchTime) < CACHE_DURATION) {
+    return cachedSchemes
+  }
+
+  try {
+    await connectDB()
+
+    if (isDBMockMode()) {
+      // Generate fresh AI data
+      const schemes = await generateSchemes(15)
+      cachedSchemes = schemes
+      lastFetchTime = now
+      return schemes
+    }
+
+    // Try database
+    const schemes = await Scheme.find({ isActive: true }).sort({ createdAt: -1 })
+    if (schemes.length === 0) {
+      // Seed with AI data if empty
+      const aiSchemes = await generateSchemes(15)
+      // Note: In real DB mode, you'd insert these. For now return them directly
+      cachedSchemes = aiSchemes
+      lastFetchTime = now
+      return aiSchemes
+    }
+    return schemes
+  } catch (error) {
+    console.warn('DB error, using AI-generated fallback:', error)
+    const schemes = await generateSchemes(15)
+    cachedSchemes = schemes
+    lastFetchTime = now
+    return schemes
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,40 +52,26 @@ export async function GET(req: NextRequest) {
     const state = searchParams.get('state')
     const search = searchParams.get('search')
 
-    await connectDB()
+    const schemes = await getSchemesData()
 
-    if (isDBMockMode()) {
-      let schemes = [...mockSchemes]
-      if (category && category !== 'all') {
-        schemes = schemes.filter(s => s.category === category)
-      }
-      if (state && state !== 'all') {
-        schemes = schemes.filter(s => s.state === state)
-      }
-      if (search) {
-        const q = search.toLowerCase()
-        schemes = schemes.filter(s =>
-          s.title.toLowerCase().includes(q) ||
-          s.description.toLowerCase().includes(q) ||
-          s.organization.toLowerCase().includes(q)
-        )
-      }
-      return NextResponse.json({ success: true, schemes })
+    let filtered = [...schemes]
+    if (category && category !== 'all') {
+      filtered = filtered.filter(s => s.category === category)
     }
-
-    let query: any = { isActive: true }
-    if (category && category !== 'all') query.category = category
-    if (state && state !== 'all') query.state = state
+    if (state && state !== 'all') {
+      filtered = filtered.filter(s => s.state === state || s.state === 'All India')
+    }
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { organization: { $regex: search, $options: 'i' } }
-      ]
+      const q = search.toLowerCase()
+      filtered = filtered.filter(s =>
+        s.title.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q) ||
+        s.organization.toLowerCase().includes(q) ||
+        s.ministry?.toLowerCase().includes(q)
+      )
     }
 
-    const schemes = await Scheme.find(query).sort({ createdAt: -1 })
-    return NextResponse.json({ success: true, schemes })
+    return NextResponse.json({ success: true, schemes: filtered })
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message },
@@ -56,7 +84,8 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB()
     if (isDBMockMode()) {
-      return NextResponse.json({ success: true, scheme: mockSchemes[0] }, { status: 201 })
+      const body = await req.json()
+      return NextResponse.json({ success: true, scheme: body }, { status: 201 })
     }
     const body = await req.json()
     const scheme = await Scheme.create(body)
