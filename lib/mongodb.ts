@@ -59,4 +59,5 @@ export function isDBMockMode() {
   return isMockMode
 }
 
+export { connectDB }
 export default connectDB
