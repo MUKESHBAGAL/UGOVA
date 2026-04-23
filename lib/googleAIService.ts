@@ -218,35 +218,18 @@ function generateExams(count: number): GoogleFetchedOpportunity[] {
     appEnd.setDate(appEnd.getDate() - 15);
 
     return {
-      _id: generateId(),
+      id: generateId(),
       title,
       description: `The ${title} is a prestigious national-level competitive examination conducted by ${org}. This exam recruits eligible candidates for ${name} positions across various departments. The selection process typically includes a preliminary examination, main written test, and interview/personality test. Successful candidates are appointed to Class I/II/III government posts with attractive salary and benefits.`,
-      category: "exam" as const,
-      examType: org.includes("UPSC") ? "upsc" : org.includes("SSC") ? "ssc" : org.includes("IBPS") || org.includes("Bank") ? "banking" : org.includes("Railway") ? "railway" : org.includes("Army") || org.includes("Navy") || org.includes("Force") ? "defence" : "state",
+      category: "exam",
       organization: org,
-      state: "All India",
-      eligibility: `Candidates must be ${pick(ELIGIBILITY_POOL)}. Age limit: ${18 + Math.floor(Math.random() * 5)}-${25 + Math.floor(Math.random() * 12)} years. Relaxation applicable as per government norms.`,
-      applicationStart: appStart.toISOString().split("T")[0],
-      applicationEnd: appEnd.toISOString().split("T")[0],
-      examDate,
-      applicationFee: {
-        general: [100, 150, 200, 250, 300, 500][Math.floor(Math.random() * 6)],
-        obc: [100, 150, 200, 250, 300][Math.floor(Math.random() * 5)],
-        sc: 0,
-        st: 0,
-        ews: [100, 150, 200][Math.floor(Math.random() * 3)],
-      },
-      totalPosts: [50, 100, 250, 500, 750, 1000, 1500, 2000][Math.floor(Math.random() * 8)],
-      ageLimit: { min: 18 + Math.floor(Math.random() * 5), max: 25 + Math.floor(Math.random() * 12) },
-      qualification: pick(ELIGIBILITY_POOL),
       location: "All India",
+      eligibility: `Candidates must be ${pick(ELIGIBILITY_POOL)}. Age limit: ${18 + Math.floor(Math.random() * 5)}-${25 + Math.floor(Math.random() * 12)} years. Relaxation applicable as per government norms.`,
+      deadline: appEnd.toISOString().split("T")[0],
       url: generateSourceUrl(title, org),
       source: "Google Search + AI Extraction",
       lastUpdated: new Date().toISOString(),
       tags: [...tpl.tags, org.toLowerCase().replace(/\s+/g, "-"), `year-${year}`],
-      isActive: true,
-      deadline: appEnd.toISOString().split("T")[0],
-      id: generateId(),
     };
   });
 }
@@ -271,19 +254,42 @@ function generateJobs(count: number): GoogleFetchedOpportunity[] {
     const salaryMin = 18000 + Math.floor(Math.random() * 12) * 1000;
     const salaryMax = salaryMin + 30000 + Math.floor(Math.random() * 5) * 10000;
 
+    const salaryMin = 18000 + Math.floor(Math.random() * 12) * 1000;
+    const salaryMax = salaryMin + 30000 + Math.floor(Math.random() * 5) * 10000;
+
     return {
-      id: generateId(),
+      _id: generateId(),
       title,
       description: `${org} invites applications for ${totalPosts.toLocaleString()} ${name} posts. This is a permanent government position under the Central/State government with pay scale of Level ${Math.floor(Math.random() * 10) + 1}. Selected candidates will be posted across various locations. Benefits include DA, HRA, TA, medical facilities, pension scheme, and other allowances as per 7th Pay Commission.`,
-      category: "job",
+      category: "job" as const,
+      jobType: "permanent" as const,
       organization: org,
+      department: `Department of ${pick(ORGS.ministry)}`,
+      state: pick(LOCATIONS),
       location: pick(LOCATIONS),
       eligibility: `Candidates must have ${pick(ELIGIBILITY_POOL)} with relevant experience (if applicable). Age: ${18 + Math.floor(Math.random() * 5)}-${30 + Math.floor(Math.random() * 7)} years.`,
-      deadline: randomDate(new Date(), new Date(nextYear, 2, 31)),
+      qualification: pick(ELIGIBILITY_POOL),
+      experience: ["Freshers", "0-2 years", "1-3 years", "2-5 years", "5+ years"][Math.floor(Math.random() * 5)],
+      salaryRange: { min: salaryMin, max: salaryMax },
+      totalPosts,
+      applicationStart: randomDate(new Date(year, new Date().getMonth() - 1, 1), new Date()),
+      applicationEnd: randomDate(new Date(), new Date(nextYear, 2, 31)),
+      ageLimit: { min: 18 + Math.floor(Math.random() * 5), max: 30 + Math.floor(Math.random() * 7) },
+      applicationFee: {
+        general: [100, 200, 300, 500, 600][Math.floor(Math.random() * 5)],
+        obc: [100, 150, 200, 300][Math.floor(Math.random() * 4)],
+        sc: 0,
+        st: 0,
+        ews: [50, 100, 200][Math.floor(Math.random() * 3)],
+      },
+      selectionProcess: `Written Exam, ${Math.random() > 0.5 ? "Skill Test, " : ""}Document Verification, Medical Examination`,
       url: generateSourceUrl(title, org),
       source: "Google Search + AI Extraction",
       lastUpdated: new Date().toISOString(),
       tags: [...tpl.tags, org.toLowerCase().replace(/\s+/g, "-"), `posts-${totalPosts}`, `year-${year}`],
+      isActive: true,
+      deadline: randomDate(new Date(), new Date(nextYear, 2, 31)),
+      id: generateId(),
     };
   });
 }
