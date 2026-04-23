@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { generateExams } from '@/lib/aiDataGenerator'
 
+export const dynamic = 'force-dynamic'
+
 let cachedExams: any[] | null = null
 let lastFetchTime = 0
 const CACHE_DURATION = 1000 * 60 * 30 // 30 minutes
