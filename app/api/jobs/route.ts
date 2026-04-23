@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import connectDB, { isDBMockMode } from '@/lib/mongodb'
-import Job from '@/models/Job'
+import connectDB from '@/lib/mongodb'
 import { generateJobs } from '@/lib/aiDataGenerator'
 
 let cachedJobs: any[] | null = null
@@ -13,31 +12,25 @@ async function getJobsData() {
     return cachedJobs
   }
 
-  try {
-    await connectDB()
-
-    if (isDBMockMode()) {
-      const jobs = await generateJobs(10)
-      cachedJobs = jobs
-      lastFetchTime = now
-      return jobs
+  const conn = await connectDB()
+  if (conn) {
+    try {
+      const Job = (await import('@/models/Job')).default
+      const jobs = await Job.find({ isActive: true }).sort({ applicationEnd: 1 })
+      if (jobs.length > 0) {
+        cachedJobs = jobs
+        lastFetchTime = now
+        return jobs
+      }
+    } catch (dbError) {
+      console.warn('DB fetch failed for jobs, using AI fallback:', dbError)
     }
-
-    const jobs = await Job.find({ isActive: true }).sort({ applicationEnd: 1 })
-    if (jobs.length === 0) {
-      const aiJobs = await generateJobs(10)
-      cachedJobs = aiJobs
-      lastFetchTime = now
-      return aiJobs
-    }
-    return jobs
-  } catch (error) {
-    console.warn('DB error, using AI-generated fallback:', error)
-    const jobs = await generateJobs(10)
-    cachedJobs = jobs
-    lastFetchTime = now
-    return jobs
   }
+
+  const jobs = await generateJobs(10)
+  cachedJobs = jobs
+  lastFetchTime = now
+  return jobs
 }
 
 export async function GET(req: NextRequest) {
@@ -51,14 +44,14 @@ export async function GET(req: NextRequest) {
 
     let filtered = [...jobs]
     if (jobType && jobType !== 'all') {
-      filtered = filtered.filter(j => j.jobType === jobType)
+      filtered = filtered.filter((j: any) => j.jobType === jobType)
     }
     if (state && state !== 'all') {
-      filtered = filtered.filter(j => j.state === state || j.state === 'All India')
+      filtered = filtered.filter((j: any) => j.state === state || j.state === 'All India')
     }
     if (search) {
       const q = search.toLowerCase()
-      filtered = filtered.filter(j =>
+      filtered = filtered.filter((j: any) =>
         j.title.toLowerCase().includes(q) ||
         j.description.toLowerCase().includes(q) ||
         j.organization.toLowerCase().includes(q) ||
@@ -77,14 +70,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await connectDB()
-    if (isDBMockMode()) {
-      const body = await req.json()
-      return NextResponse.json({ success: true, job: body }, { status: 201 })
-    }
     const body = await req.json()
-    const job = await Job.create(body)
-    return NextResponse.json({ success: true, job }, { status: 201 })
+    const conn = await connectDB()
+
+    if (conn) {
+      const Job = (await import('@/models/Job')).default
+      const job = await Job.create(body)
+      return NextResponse.json({ success: true, job }, { status: 201 })
+    }
+
+    return NextResponse.json({ success: true, job: body }, { status: 201 })
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message },
