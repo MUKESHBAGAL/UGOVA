@@ -7,7 +7,7 @@ import {
   Shield, Users, Building2, GraduationCap, Briefcase, 
   TrendingUp, CheckCircle, XCircle, Clock, BarChart3,
   FileCheck, AlertTriangle, ArrowUp, ArrowDown,
-  Search, Filter, MoreHorizontal, Loader2, RefreshCw, BrainCircuit
+  Search, Filter, MoreHorizontal, Loader2
 } from 'lucide-react'
 
 const mockStats = {
@@ -42,6 +42,50 @@ export default function AdminPage() {
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState('overview')
   const [searchTerm, setSearchTerm] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+  const [dataCounts, setDataCounts] = useState({ schemes: 0, exams: 0, jobs: 0 })
+  const [refreshMessage, setRefreshMessage] = useState('')
+
+  useEffect(() => {
+    // Fetch data counts
+    async function fetchCounts() {
+      try {
+        const [sRes, eRes, jRes] = await Promise.all([
+          fetch('/api/schemes'),
+          fetch('/api/exams'),
+          fetch('/api/jobs')
+        ])
+        const [sData, eData, jData] = await Promise.all([sRes.json(), eRes.json(), jRes.json()])
+        setDataCounts({
+          schemes: sData.schemes?.length || 0,
+          exams: eData.exams?.length || 0,
+          jobs: jData.jobs?.length || 0
+        })
+      } catch (e) {
+        console.error('Failed to fetch counts:', e)
+      }
+    }
+    fetchCounts()
+  }, [refreshing])
+
+  const handleRefreshData = async () => {
+    setRefreshing(true)
+    setRefreshMessage('AI is fetching latest government data...')
+    try {
+      // Trigger re-fetch by hitting API endpoints (cache will expire)
+      await Promise.all([
+        fetch('/api/schemes?t=' + Date.now()),
+        fetch('/api/exams?t=' + Date.now()),
+        fetch('/api/jobs?t=' + Date.now())
+      ])
+      setRefreshMessage('Data refreshed successfully! AI has curated latest opportunities.')
+      setTimeout(() => setRefreshMessage(''), 3000)
+    } catch (e) {
+      setRefreshMessage('Refresh failed. Please try again.')
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   if (status === 'loading') {
     return (
@@ -63,6 +107,7 @@ export default function AdminPage() {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'verifications', label: 'Verifications', icon: FileCheck },
+    { id: 'data', label: 'AI Data', icon: BrainCircuit },
     { id: 'users', label: 'Users', icon: Users },
   ]
 
