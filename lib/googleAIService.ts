@@ -48,6 +48,7 @@ export interface GoogleFetchedOpportunity {
   experience?: string;
   salaryRange?: { min: number; max: number };
   selectionProcess?: string;
+  applicationFee?: { general: number; obc: number; sc: number; st: number; ews: number };
 }
 
 interface SearchQuery {
@@ -295,7 +296,7 @@ function generateJobs(count: number): GoogleFetchedOpportunity[] {
       applicationStart: appStart,
       applicationEnd: appEnd,
       ageLimit: { min: 18 + Math.floor(Math.random() * 5), max: 30 + Math.floor(Math.random() * 7) },
-      applicationFee: {
+      applicationFee_job: {
         general: [100, 200, 300, 500, 600][Math.floor(Math.random() * 5)],
         obc: [100, 150, 200, 300][Math.floor(Math.random() * 4)],
         sc: 0, st: 0,
