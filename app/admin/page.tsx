@@ -7,7 +7,7 @@ import {
   Shield, Users, Building2, GraduationCap, Briefcase, 
   TrendingUp, CheckCircle, XCircle, Clock, BarChart3,
   FileCheck, AlertTriangle, ArrowUp, ArrowDown,
-  Search, Filter, MoreHorizontal, Loader2
+  Search, Filter, MoreHorizontal, Loader2, RefreshCw, BrainCircuit
 } from 'lucide-react'
 
 const mockStats = {
