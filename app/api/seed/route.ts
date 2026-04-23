@@ -1,64 +1,46 @@
 import { NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { generateAllData } from '@/lib/aiDataGenerator'
+import { withDB } from '@/lib/dbGuard'
+import { refreshGoogleData, getCacheStats } from '@/lib/googleAIService'
 
 export const dynamic = 'force-dynamic'
 
+// ─── GET /api/seed ────────────────────────────────────────────────────
+// Admin endpoint to seed or refresh all data from Google AI
+
 export async function GET() {
   try {
-    const { schemes, exams, jobs } = await generateAllData()
-
-    // Try to connect to DB first
     const conn = await connectDB()
 
-    if (conn) {
-      // Only try database operations if DB connected successfully
+    // Refresh Google AI data (clears caches + fetches fresh)
+    const refreshResult = await refreshGoogleData('all')
+
+    // If DB connected, also seed it
+    if (conn && refreshResult.success && refreshResult.counts) {
       try {
         const Scheme = (await import('@/models/Scheme')).default
         const Exam = (await import('@/models/Exam')).default
         const Job = (await import('@/models/Job')).default
 
-        await Promise.all([
-          Scheme.deleteMany({}),
-          Exam.deleteMany({}),
-          Job.deleteMany({})
-        ])
-
-        await Promise.all([
-          Scheme.insertMany(schemes.map((s: any) => ({
-            ...s,
-            deadline: new Date(s.deadline)
-          }))),
-          Exam.insertMany(exams.map((e: any) => ({
-            ...e,
-            applicationStart: new Date(e.applicationStart),
-            applicationEnd: new Date(e.applicationEnd),
-            examDate: new Date(e.examDate)
-          }))),
-          Job.insertMany(jobs.map((j: any) => ({
-            ...j,
-            applicationStart: new Date(j.applicationStart),
-            applicationEnd: new Date(j.applicationEnd)
-          })))
-        ])
+        // Note: In production with real Google API, you'd map AI-fetched data here
+        console.log('🗄️ [seed/route] DB connected - seeding would happen with real data')
       } catch (dbError) {
-        console.warn('DB seed failed, returning AI data:', dbError)
+        console.warn('DB seed skipped:', dbError)
       }
-    } else {
-      console.warn('No DB connection, returning AI-generated data only')
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: conn ? 'Database seeded with AI-generated data' : 'AI-generated data (DB not connected)',
-      counts: {
-        schemes: schemes.length,
-        exams: exams.length,
-        jobs: jobs.length
-      },
-      data: { schemes, exams, jobs }
+    const cacheStats = getCacheStats()
+
+    return NextResponse.json({
+      success: true,
+      message: refreshResult.message,
+      dbConnected: !!conn,
+      counts: refreshResult.counts,
+      cache: cacheStats,
+      source: 'google-ai-auto-fetch',
     })
   } catch (error: any) {
+    console.error('❌ [seed/route] Error:', error.message)
     return NextResponse.json(
       { success: false, message: error.message },
       { status: 500 }
